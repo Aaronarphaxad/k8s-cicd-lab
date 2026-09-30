@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -115,3 +115,38 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+
+            # Record the newly published immutable image in the desired state.
+      - name: Update Kubernetes image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          NEW_IMAGE="${{ steps.image.outputs.name }}:sha-${GITHUB_SHA}"
+
+          sed -i \
+            "s|^[[:space:]]*image:.*k8s-cicd-lab.*|          image: ${NEW_IMAGE}|" \
+            k8s/deployment.yaml
+
+          echo "Deployment will use: ${NEW_IMAGE}"
+          grep "image:" k8s/deployment.yaml
+
+      # Commit only the deployment change. Because k8s/** is excluded from
+      # workflow triggers, this bot commit will not start another build.
+      - name: Commit deployment update
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/deployment.yaml
+
+          if git diff --cached --quiet; then
+            echo "The deployment manifest already uses this image."
+            exit 0
+          fi
+
+          git commit -m "Deploy image sha-${GITHUB_SHA}"
+          git push origin HEAD:main
