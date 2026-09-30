@@ -47,7 +47,7 @@ spec:
 
           # CI replaces the application source with an immutable container.
           # This placeholder is replaced locally before the manifest is committed.
-          image: ghcr.io/aaronarphaxad/k8s-cicd-lab:sha-76dac6a41023712786725bfb851a212a04c106e5
+          image: ghcr.io/aaronarphaxad/k8s-cicd-lab:sha-da1094729aef57f573e1399b1d4cbb808dd1b2e0
 
           # The commit-specific image tag is immutable, so cached copies are safe.
           imagePullPolicy: IfNotPresent
