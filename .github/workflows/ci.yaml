@@ -1,0 +1,116 @@
+name: Test and publish container
+
+# Pull requests run tests but do not publish an image.
+# Commits merged or pushed to main run tests and publish to GHCR.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "k8s/**"
+      - "README.md"
+
+# Workflows receive no write access unless a job explicitly requests it.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test application
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository into the temporary GitHub runner.
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      # Run the fast source-level checks.
+      - name: Run static tests
+        run: ./tests/test-app.sh
+
+      # Build the same container that will eventually be published.
+      - name: Build test image
+        run: docker build --tag demo-app:test .
+
+      # Start the image and verify the real HTTP responses.
+      - name: Run container smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker run --detach \
+            --name demo-app-test \
+            --publish 127.0.0.1:8080:80 \
+            demo-app:test
+
+          trap 'docker rm --force demo-app-test >/dev/null 2>&1 || true' EXIT
+
+          for attempt in {1..10}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz; then
+              break
+            fi
+
+            if [ "$attempt" -eq 10 ]; then
+              echo "The container did not become healthy."
+              docker logs demo-app-test
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          curl --fail --silent http://127.0.0.1:8080/ \
+            | grep --quiet "Kubernetes CI/CD Lab"
+
+          test "$(curl --fail --silent http://127.0.0.1:8080/healthz)" = "healthy"
+
+  publish:
+    name: Publish image to GHCR
+    needs:
+      - test
+
+    # Pull requests test the application but cannot publish packages.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      # Container registry names must be lowercase.
+      - name: Define image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # GITHUB_TOKEN is generated for this workflow run.
+      # No personal access token is stored in the repository.
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish an immutable commit tag and a convenient moving main tag.
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+            ${{ steps.image.outputs.name }}:main
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
