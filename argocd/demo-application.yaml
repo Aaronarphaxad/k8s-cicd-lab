@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+
+  # Argo CD Application objects normally live in the argocd namespace.
+  namespace: argocd
+
+  # This finalizer lets Argo CD clean up managed resources if the
+  # Application is deliberately deleted using cascading deletion.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # The default project is sufficient for this single-application lab.
+  # A production environment would normally define a restricted AppProject.
+  project: default
+
+  source:
+    # Argo CD reads desired state from this public Git repository.
+    repoURL: https://github.com/aaronarphaxad/k8s-cicd-lab.git
+
+    # Follow the main branch. Production promotion could instead use
+    # environment branches, tags, or a separate GitOps repository.
+    targetRevision: main
+
+    # Only files inside k8s/ are treated as deployable resources.
+    path: k8s
+
+  destination:
+    # This address represents the Kubernetes cluster where Argo CD runs.
+    server: https://kubernetes.default.svc
+    namespace: demo
+
+  syncPolicy:
+    automated:
+      # Delete resources removed from Git.
+      prune: true
+
+      # Restore resources when the live cluster is changed manually.
+      selfHeal: true
+
+      # Protect against accidentally deleting every manifest from the path.
+      allowEmpty: false
+
+    syncOptions:
+      # Create the destination namespace if it does not exist.
+      - CreateNamespace=true
+
+      # Delete obsolete resources after healthy replacements are applied.
+      - PruneLast=true

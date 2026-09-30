@@ -11,6 +11,7 @@ on:
       - main
     paths-ignore:
       - "k8s/**"
+      - "argocd/**"
       - "README.md"
 
 # Workflows receive no write access unless a job explicitly requests it.
