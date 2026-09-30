@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: demo-app
+    app.kubernetes.io/part-of: k8s-cicd-lab
+spec:
+  # Two replicas let Kubernetes keep the application running if one pod fails.
+  replicas: 2
+
+  # Keep a few previous ReplicaSets so a failed release can be rolled back.
+  revisionHistoryLimit: 3
+
+  # During an update, keep both existing replicas available while creating
+  # one replacement pod at a time.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  # The Deployment manages pods carrying this exact label.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-app
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-app
+        app.kubernetes.io/part-of: k8s-cicd-lab
+    spec:
+      # Spread replicas across different nodes. With two healthy workers,
+      # Kubernetes should place one application pod on each worker.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: demo-app
+
+      containers:
+        - name: demo-app
+
+          # CI replaces the application source with an immutable container.
+          # This placeholder is replaced locally before the manifest is committed.
+          image: ghcr.io/aaronarphaxad/k8s-cicd-lab:sha-76dac6a41023712786725bfb851a212a04c106e5
+
+          # The commit-specific image tag is immutable, so cached copies are safe.
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          # Requests influence scheduling. Limits prevent this demonstration
+          # application from consuming excessive node resources.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+          # Readiness controls whether the Service sends traffic to this pod.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Liveness lets Kubernetes restart a container that becomes unhealthy.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3

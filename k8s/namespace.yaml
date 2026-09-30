@@ -1,0 +1,8 @@
+# A namespace gives the application its own administrative boundary.
+# Namespaces help separate application objects from Kubernetes system objects.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    app.kubernetes.io/part-of: k8s-cicd-lab

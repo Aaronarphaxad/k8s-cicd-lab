@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: demo-app
+spec:
+  # ClusterIP makes the application reachable inside Kubernetes.
+  # Traefik will provide controlled access from outside the cluster.
+  type: ClusterIP
+
+  # Traffic is sent to pods with the matching application label.
+  selector:
+    app.kubernetes.io/name: demo-app
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
