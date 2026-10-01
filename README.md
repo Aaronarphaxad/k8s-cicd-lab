@@ -181,6 +181,31 @@ curl -fsS http://k8s-demo.home/healthz
 
 The health endpoint should return `healthy`. Open `http://k8s-demo.home` in a browser and confirm the new version appears. Use a hard refresh if the browser displays a cached page.
 
+
+## Reach ArgoCD UI
+
+Argo CD was not changed to a public `LoadBalancer` or `NodePort` Service.
+Instead, run this on the control-plane node:
+
+```bash
+sudo /usr/local/bin/k3s kubectl port-forward service/argocd-server \
+  -n argocd \
+  8080:443
+```
+
+Leave that terminal running. From the Debian management VM, create an SSH
+tunnel to the loopback listener on the control plane:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 aomale@k8s-cp-01
+```
+
+Open this on the Debian VM or a browser using that local tunnel:
+
+```text
+https://localhost:8080
+```
+
 ## Troubleshooting
 
 ### CI fails
