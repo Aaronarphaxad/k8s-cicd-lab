@@ -10,7 +10,7 @@ test -s app/healthz
 
 # Confirm that the page includes the expected application identity and version.
 grep -q "Kubernetes CI/CD Lab" app/index.html
-grep -q "Version 1.0.0" app/index.html
+grep -q "Version 1.1.0" app/index.html
 
 # Remove newline characters before comparing the health response.
 health_response="$(tr -d '\r\n' < app/healthz)"

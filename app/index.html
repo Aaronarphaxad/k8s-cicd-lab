@@ -4,10 +4,62 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kubernetes CI/CD Lab</title>
+
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, system-ui, sans-serif;
+        background: #eef2ff;
+        color: #172033;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+      }
+
+      main {
+        width: min(680px, calc(100% - 3rem));
+        padding: 3rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 20px 50px rgb(30 41 59 / 12%);
+      }
+
+      h1 {
+        margin-top: 0;
+        color: #2563eb;
+      }
+
+      .version {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-weight: 700;
+      }
+
+      .pipeline {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #dbe3f0;
+      }
+    </style>
   </head>
+
   <body>
-    <h1>Kubernetes CI/CD Lab</h1>
-    <p>Version 1.0.0</p>
-    <p>Deployed on an on-premises Kubernetes cluster.</p>
+    <main>
+      <p class="version">Version 1.1.0</p>
+      <h1>Kubernetes CI/CD Lab</h1>
+      <p>This application runs on an on-premises K3s cluster.</p>
+
+      <p class="pipeline">
+        Tested and built by GitHub Actions, stored in GHCR,
+        and deployed by Argo CD.
+      </p>
+    </main>
   </body>
 </html>
