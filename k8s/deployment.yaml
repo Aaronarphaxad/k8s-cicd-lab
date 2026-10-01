@@ -32,6 +32,11 @@ spec:
         app.kubernetes.io/name: demo-app
         app.kubernetes.io/part-of: k8s-cicd-lab
     spec:
+      # Only worker-labelled nodes are eligible for application pods.
+      # This also prevents the tainted control plane from participating
+      # in the topology-spread calculation.
+      nodeSelector:
+        node-role.kubernetes.io/worker: worker
       # Spread replicas across different nodes. With two healthy workers,
       # Kubernetes should place one application pod on each worker.
       topologySpreadConstraints:
